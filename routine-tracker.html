@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="My Routine"/>
+<title>My Routine</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#ffffff;--bg2:#f5f5f4;--bg3:#eeede8;
+  --text:#1a1a1a;--text2:#6b6b6b;--text3:#9ca3af;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+  --green:#639922;--green-light:#EAF3DE;--green-dark:#3B6D11;
+  --green-border:#C0DD97;
+  --red:#E24B4A;--red-light:#FCEBEB;--red-border:#F7C1C1;
+  --blue-light:#E6F1FB;--blue:#185FA5;
+  --radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;
+    --text:#f2f2f7;--text2:#aeaeb2;--text3:#636366;
+    --border:rgba(255,255,255,0.12);--border2:rgba(255,255,255,0.22);
+    --green-light:#1a2e0a;--green-dark:#97C459;--green-border:#3B6D11;
+    --red-light:#2d0f0f;--red-border:#7a2020;
+    --blue-light:#0d1f35;--blue:#85B7EB;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;background:var(--bg3);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;font-size:16px;color:var(--text);}
+.app{max-width:430px;margin:0 auto;background:var(--bg3);min-height:100vh;padding-bottom:env(safe-area-inset-bottom,20px);}
+.header{padding:calc(env(safe-area-inset-top,20px) + 12px) 16px 12px;background:var(--bg);border-bottom:0.5px solid var(--border);}
+.header h1{font-size:22px;font-weight:600;color:var(--text);}
+.header-date{font-size:13px;color:var(--text2);margin-top:2px;}
+.nav-tabs{display:flex;background:var(--bg);border-bottom:0.5px solid var(--border);overflow-x:auto;}
+.nav-tab{flex:1;min-width:70px;padding:11px 4px;text-align:center;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap;}
+.nav-tab.active{color:var(--green);border-bottom-color:var(--green);}
+.view{display:none;}.view.active{display:block;}
+
+.donuts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px;}
+.donut-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px 10px;display:flex;flex-direction:column;align-items:center;}
+.donut-card-title{font-size:11px;font-weight:500;margin-bottom:10px;text-align:center;color:var(--text2);}
+.donut-wrap{position:relative;width:88px;height:88px;}
+.donut-wrap canvas{width:88px!important;height:88px!important;}
+.donut-lbl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.donut-pct{font-size:17px;font-weight:600;color:var(--text);}
+.donut-sub{font-size:9px;color:var(--text2);}
+.donut-stats{display:flex;gap:12px;margin-top:10px;}
+.dstat{text-align:center;}
+.dstat-val{font-size:15px;font-weight:600;color:var(--text);}
+.dstat-lbl{font-size:9px;color:var(--text2);}
+
+.bar-section{padding:0 12px 12px;}
+.bar-lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:5px;}
+.bar-wrap{background:var(--bg2);border-radius:99px;height:9px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:99px;transition:width 0.4s,background 0.4s;}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 6px;}
+.section-label{font-size:14px;font-weight:600;color:var(--text);}
+.add-btn{font-size:13px;background:none;border:0.5px solid var(--border2);border-radius:var(--radius);padding:5px 12px;cursor:pointer;color:var(--text2);}
+
+.task-list{padding:0 12px;display:flex;flex-direction:column;gap:8px;}
+.task-card{display:flex;align-items:center;gap:10px;padding:12px 13px;border-radius:var(--radius-lg);border:0.5px solid var(--border);background:var(--bg);min-height:52px;}
+.task-card.done{background:var(--green-light);border-color:var(--green-border);}
+.task-card.done .tname{color:var(--green-dark);}
+.task-card.done .ttime{color:var(--green-dark);opacity:.7;}
+.check-circle{width:28px;height:28px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;background:none;}
+.check-circle.checked{background:var(--green);border-color:var(--green);}
+.tinfo{flex:1;min-width:0;}
+.tname{font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;}
+.ttime{font-size:11px;color:var(--text2);margin-top:2px;}
+.icon-btn{width:32px;height:32px;border-radius:var(--radius);border:0.5px solid var(--border);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;color:var(--text3);}
+.icon-btn:active{background:var(--bg2);}
+
+.add-form{margin:6px 12px 0;display:none;background:var(--bg2);border-radius:var(--radius-lg);padding:13px;}
+.add-form.open{display:block;}
+.add-form input[type=text]{width:100%;padding:9px 11px;border:0.5px solid var(--border2);border-radius:var(--radius);font-size:14px;background:var(--bg);color:var(--text);margin-bottom:9px;-webkit-appearance:none;}
+.form-row{display:flex;gap:8px;margin-bottom:9px;}
+.form-row input{flex:1;padding:9px 11px;border:0.5px solid var(--border2);border-radius:var(--radius);font-size:14px;background:var(--bg);color:var(--text);-webkit-appearance:none;}
+.day-picker{display:flex;gap:5px;margin-bottom:9px;flex-wrap:wrap;}
+.day-btn{padding:6px 9px;border-radius:99px;border:0.5px solid var(--border2);background:none;font-size:12px;cursor:pointer;color:var(--text2);transition:all 0.15s;}
+.day-btn.sel{background:var(--green);border-color:var(--green);color:#fff;}
+.form-actions{display:flex;gap:8px;}
+.save-btn{flex:1;padding:10px;border-radius:var(--radius);background:var(--green);border:none;color:#fff;font-size:14px;font-weight:500;cursor:pointer;}
+.cancel-btn{padding:10px 16px;border-radius:var(--radius);background:none;border:0.5px solid var(--border2);font-size:14px;cursor:pointer;color:var(--text2);}
+
+.divider{height:0.5px;background:var(--border);margin:12px 12px 0;}
+.bottom-actions{padding:16px 12px 8px;display:flex;flex-direction:column;gap:8px;}
+.action-row{display:flex;gap:8px;}
+.action-btn{flex:1;padding:11px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg);font-size:13px;color:var(--text2);cursor:pointer;text-align:center;}
+.end-day-btn{width:100%;padding:13px;border-radius:var(--radius-lg);border:1.5px solid var(--green);background:none;font-size:15px;font-weight:600;color:var(--green-dark);cursor:pointer;text-align:center;}
+.end-day-btn:active{background:var(--green-light);}
+.install-note{margin:8px 12px 0;background:var(--bg2);border-radius:var(--radius-lg);padding:11px 14px;font-size:12px;color:var(--text2);border:0.5px solid var(--border);line-height:1.6;}
+.install-note strong{color:var(--text);font-weight:600;}
+
+.empty-hint{padding:14px 0;font-size:13px;color:var(--text3);text-align:center;}
+
+.backlog-section{padding:0 12px 16px;}
+.backlog-group{margin-bottom:14px;}
+.backlog-group-title{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px;text-transform:uppercase;letter-spacing:.6px;}
+.backlog-item{display:flex;align-items:center;gap:8px;padding:10px 13px;border-radius:var(--radius-lg);border:0.5px solid var(--border);background:var(--bg);margin-bottom:7px;}
+.backlog-item.missed-item{background:var(--red-light);border-color:var(--red-border);}
+.backlog-item.done-item{background:var(--green-light);border-color:var(--green-border);opacity:.75;}
+.bname{flex:1;font-size:13px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;}
+.planned-badge{font-size:10px;padding:3px 8px;border-radius:99px;background:var(--blue-light);color:var(--blue);white-space:nowrap;flex-shrink:0;font-weight:500;}
+.planned-badge.today-badge{background:var(--green-light);color:var(--green-dark);}
+.add-to-day-btn{font-size:11px;padding:4px 9px;border-radius:99px;border:0.5px solid var(--border2);background:none;cursor:pointer;color:var(--text2);white-space:nowrap;flex-shrink:0;}
+.del-bl-btn{font-size:15px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0 3px;flex-shrink:0;}
+
+.plan-popup{position:fixed;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius-lg);padding:14px;z-index:300;width:240px;box-shadow:0 4px 20px rgba(0,0,0,0.15);}
+.plan-popup label{font-size:12px;color:var(--text2);display:block;margin-bottom:7px;}
+.plan-popup input[type=date]{width:100%;padding:8px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);font-size:14px;margin-bottom:9px;background:var(--bg);color:var(--text);-webkit-appearance:none;}
+.plan-popup-btns{display:flex;gap:7px;}
+.plan-popup-btns button{flex:1;padding:8px;border-radius:var(--radius);font-size:13px;cursor:pointer;font-weight:500;}
+.plan-confirm{background:var(--green);border:none;color:#fff;}
+.plan-cancel-btn{background:none;border:0.5px solid var(--border2);color:var(--text2);}
+
+.routine-manage{padding:0 12px 16px;}
+.rm-task{display:flex;align-items:flex-start;gap:10px;padding:12px 13px;border-radius:var(--radius-lg);border:0.5px solid var(--border);background:var(--bg);margin-bottom:8px;}
+.rm-info{flex:1;min-width:0;}
+.rm-name{font-size:14px;color:var(--text);font-weight:500;margin-bottom:7px;}
+.rm-days{display:flex;flex-wrap:wrap;gap:5px;}
+.rm-day-pill{padding:5px 9px;border-radius:99px;font-size:11px;border:0.5px solid var(--border2);color:var(--text2);background:none;cursor:pointer;transition:all 0.15s;font-weight:500;}
+.rm-day-pill.active{background:var(--green);border-color:var(--green);color:#fff;}
+.rm-actions{display:flex;flex-direction:column;gap:5px;flex-shrink:0;}
+
+.hist-tab-row{display:flex;gap:8px;padding:12px 12px 0;}
+.hist-sub-tab{flex:1;padding:9px;text-align:center;font-size:13px;font-weight:500;cursor:pointer;border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text2);background:none;}
+.hist-sub-tab.active{background:var(--green);border-color:var(--green);color:#fff;}
+.hist-sub-view{display:none;}.hist-sub-view.active{display:block;}
+.hist-controls{padding:12px;}
+.hist-controls select{width:100%;font-size:14px;padding:9px 11px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);-webkit-appearance:none;}
+.chart-section{padding:0 12px 14px;}
+.chart-lbl{font-size:12px;color:var(--text2);margin-bottom:8px;}
+.hist-legend{display:flex;gap:16px;margin-top:9px;font-size:11px;color:var(--text2);}
+.hist-legend span{display:flex;align-items:center;gap:4px;}
+.hist-legend i{width:10px;height:10px;border-radius:2px;display:inline-block;}
+.hist-day{margin:0 12px 10px;border-radius:var(--radius-lg);border:0.5px solid var(--border);overflow:hidden;}
+.hist-day-header{padding:10px 14px;background:var(--bg2);display:flex;align-items:center;justify-content:space-between;}
+.hist-day-label{font-size:13px;font-weight:600;color:var(--text);}
+.hist-tasks-inner{padding:9px 14px;display:flex;flex-direction:column;gap:7px;}
+.hist-task{display:flex;align-items:center;gap:8px;font-size:13px;}
+.hist-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.hist-dot.done{background:var(--green);}.hist-dot.missed{background:var(--red);}.hist-dot.pending{background:var(--text3);}
+.hist-task-name{color:var(--text);flex:1;}
+.no-hist{padding:2rem;text-align:center;color:var(--text2);font-size:14px;}
+
+.overall-cal-section{padding:12px;}
+.overall-cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.overall-cal-label{font-size:14px;font-weight:600;color:var(--text);}
+.cal-nav-btn{background:none;border:0.5px solid var(--border2);border-radius:var(--radius);padding:5px 14px;cursor:pointer;font-size:15px;color:var(--text2);}
+.ocal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.ocal-dow{text-align:center;font-size:10px;color:var(--text3);padding-bottom:5px;font-weight:500;}
+.ocal-day{width:100%;aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text2);}
+.ocal-day.today-mark{border:2px solid var(--green);}
+.ocal-day.empty{opacity:0;}
+.ocal-legend{display:flex;gap:10px;margin-top:10px;font-size:11px;color:var(--text2);flex-wrap:wrap;}
+.ocal-legend span{display:flex;align-items:center;gap:4px;}
+.ocal-legend i{width:10px;height:10px;border-radius:2px;display:inline-block;}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:flex-start;justify-content:center;padding-top:60px;z-index:200;overflow-y:auto;}
+.modal-box{background:var(--bg);border-radius:var(--radius-lg);width:340px;max-width:94vw;overflow:hidden;margin-bottom:20px;}
+.modal-header{padding:15px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:15px;font-weight:600;color:var(--text);}
+.modal-close{font-size:24px;background:none;border:none;cursor:pointer;color:var(--text2);line-height:1;padding:0 2px;}
+.modal-body{padding:16px;}
+.cal-month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;}
+.cal-month-label{font-size:14px;font-weight:600;color:var(--text);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-dow{text-align:center;font-size:10px;color:var(--text3);padding-bottom:5px;font-weight:500;}
+.cal-day{width:100%;aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text2);}
+.cal-day.done{background:var(--green-light);color:var(--green-dark);font-weight:600;}
+.cal-day.missed{background:var(--red-light);color:#A32D2D;font-weight:600;}
+.cal-day.today{border:2px solid var(--green);}
+.cal-day.empty{opacity:0;}
+.cal-legend{display:flex;gap:12px;margin-top:11px;font-size:12px;color:var(--text2);}
+.cal-legend span{display:flex;align-items:center;gap:4px;}
+.cal-legend i{width:10px;height:10px;border-radius:2px;display:inline-block;}
+.cal-streak{margin-top:13px;font-size:13px;color:var(--text2);text-align:center;}
+.cal-streak strong{color:var(--text);}
+
+.confirm-bg{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:400;padding:20px;}
+.confirm-box{background:var(--bg);border-radius:var(--radius-lg);padding:22px;width:300px;max-width:92vw;}
+.confirm-title{font-size:17px;font-weight:600;color:var(--text);margin-bottom:9px;}
+.confirm-body{font-size:14px;color:var(--text2);margin-bottom:18px;line-height:1.55;}
+.confirm-btns{display:flex;gap:9px;}
+.confirm-ok{flex:1;padding:12px;border-radius:var(--radius);background:var(--green);border:none;color:#fff;font-size:14px;font-weight:600;cursor:pointer;}
+.confirm-cancel-btn{flex:1;padding:12px;border-radius:var(--radius);background:none;border:0.5px solid var(--border2);font-size:14px;cursor:pointer;color:var(--text2);}
+
+.toast-msg{position:fixed;bottom:calc(env(safe-area-inset-bottom,16px) + 16px);left:50%;transform:translateX(-50%);background:#1c1c1e;color:#fff;font-size:13px;padding:10px 18px;border-radius:99px;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;z-index:500;font-weight:500;}
+.toast-msg.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>My Routine</h1>
+    <div class="header-date" id="dateLabel"></div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchView('today',this)">Today</button>
+    <button class="nav-tab" onclick="switchView('tasks',this)">Tasks</button>
+    <button class="nav-tab" onclick="switchView('routine',this)">Routine</button>
+    <button class="nav-tab" onclick="switchView('history',this)">History</button>
+  </div>
+
+  <div id="view-today" class="view active">
+    <div class="donuts-row">
+      <div class="donut-card">
+        <div class="donut-card-title">Daily routine</div>
+        <div class="donut-wrap"><canvas id="donutMust" role="img" aria-label="Routine completion"></canvas>
+          <div class="donut-lbl"><span class="donut-pct" id="mustPct">0%</span><span class="donut-sub">done</span></div>
+        </div>
+        <div class="donut-stats">
+          <div class="dstat"><div class="dstat-val" id="mustDone">0</div><div class="dstat-lbl">done</div></div>
+          <div class="dstat"><div class="dstat-val" id="mustLeft">0</div><div class="dstat-lbl">left</div></div>
+        </div>
+      </div>
+      <div class="donut-card">
+        <div class="donut-card-title">Tasks</div>
+        <div class="donut-wrap"><canvas id="donutOpt" role="img" aria-label="Tasks completion"></canvas>
+          <div class="donut-lbl"><span class="donut-pct" id="optPct">0%</span><span class="donut-sub">done</span></div>
+        </div>
+        <div class="donut-stats">
+          <div class="dstat"><div class="dstat-val" id="optDone">0</div><div class="dstat-lbl">done</div></div>
+          <div class="dstat"><div class="dstat-val" id="optLeft">0</div><div class="dstat-lbl">left</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="bar-section">
+      <div class="bar-lbl"><span>Overall</span><span id="overallPct">0%</span></div>
+      <div class="bar-wrap"><div class="bar-fill" id="barFill" style="width:0%"></div></div>
+    </div>
+    <div class="section-head"><span class="section-label">Daily routine</span></div>
+    <div class="task-list" id="mustList"></div>
+    <div class="divider"></div>
+    <div class="section-head"><span class="section-label">Today's tasks</span></div>
+    <div class="task-list" id="todayTaskList"></div>
+    <div style="padding:6px 16px 0;font-size:12px;color:var(--text3);">Plan tasks from the Tasks tab</div>
+    <div class="bottom-actions">
+      <div class="action-row">
+        <button class="action-btn" id="exportBtn">Export backup ↓</button>
+        <button class="action-btn" id="importTrigger">Import backup ↑</button>
+      </div>
+      <input type="file" id="importInput" accept=".json" style="display:none"/>
+      <button class="end-day-btn" id="endDayBtn">End the day</button>
+    </div>
+    <div class="install-note"><strong>Installed?</strong> If not: tap the Share button in Safari → "Add to Home Screen" → Add. Then open from your home screen for the full app experience.</div>
+    <div style="height:12px;"></div>
+  </div>
+
+  <div id="view-tasks" class="view">
+    <div class="section-head">
+      <span class="section-label">Backlog</span>
+      <button class="add-btn" id="addBacklogBtn">+ add task</button>
+    </div>
+    <div class="add-form" id="addFormBacklog">
+      <input type="text" id="backlogName" placeholder="Task name" maxlength="60"/>
+      <div class="form-row"><input type="text" id="backlogNote" placeholder="Note (optional)" maxlength="60"/></div>
+      <div class="form-actions">
+        <button class="cancel-btn" id="backlogCancelBtn">Cancel</button>
+        <button class="save-btn" id="backlogSaveBtn">Add to backlog</button>
+      </div>
+    </div>
+    <div class="backlog-section" id="backlogSection"></div>
+  </div>
+
+  <div id="view-routine" class="view">
+    <div class="section-head">
+      <span class="section-label">All routine tasks</span>
+      <button class="add-btn" id="addRoutineBtn">+ add</button>
+    </div>
+    <div class="add-form" id="addFormRoutine">
+      <input type="text" id="rName" placeholder="Task name" maxlength="40"/>
+      <div class="form-row">
+        <input type="text" id="rTime" placeholder="Time (e.g. 7:00 AM)" maxlength="15"/>
+        <input type="text" id="rEmoji" placeholder="Emoji (opt.)" maxlength="2" style="width:110px;flex:none;"/>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:7px;">Show on:</div>
+      <div class="day-picker" id="rDayPicker"></div>
+      <div class="form-actions">
+        <button class="cancel-btn" id="rCancelBtn">Cancel</button>
+        <button class="save-btn" id="rSaveBtn">Save task</button>
+      </div>
+    </div>
+    <div class="routine-manage" id="routineManage"></div>
+  </div>
+
+  <div id="view-history" class="view">
+    <div class="hist-tab-row">
+      <button class="hist-sub-tab active" onclick="switchHistTab('overall',this)">Calendar</button>
+      <button class="hist-sub-tab" onclick="switchHistTab('log',this)">Day log</button>
+    </div>
+    <div id="hist-overall" class="hist-sub-view active">
+      <div class="overall-cal-section">
+        <div class="overall-cal-nav">
+          <button class="cal-nav-btn" id="ocalPrev">‹</button>
+          <span class="overall-cal-label" id="ocalLabel"></span>
+          <button class="cal-nav-btn" id="ocalNext">›</button>
+        </div>
+        <div class="ocal-grid" id="ocalGrid"></div>
+        <div class="ocal-legend">
+          <span><i style="background:#639922;"></i>100%</span>
+          <span><i style="background:#97C459;"></i>≥75%</span>
+          <span><i style="background:#EF9F27;"></i>≥50%</span>
+          <span><i style="background:#E24B4A;"></i>&lt;50%</span>
+          <span><i style="background:var(--bg2);border:0.5px solid var(--border);"></i>No data</span>
+        </div>
+      </div>
+    </div>
+    <div id="hist-log" class="hist-sub-view">
+      <div class="hist-controls"><select id="histFilter"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 3 months</option><option value="365">Last year</option><option value="all">All time</option></select></div>
+      <div class="chart-section">
+        <div class="chart-lbl">Completion rate over time</div>
+        <div style="position:relative;width:100%;height:170px;"><canvas id="histChart" role="img" aria-label="Completion chart">History.</canvas></div>
+        <div class="hist-legend">
+          <span><i style="background:#A32D2D;"></i>Routine</span>
+          <span><i style="background:#185FA5;"></i>Tasks</span>
+          <span><i style="background:#639922;"></i>Overall</span>
+        </div>
+      </div>
+      <div id="histList"></div>
+    </div>
+  </div>
+</div>
+
+<div id="taskModalBg" class="modal-bg" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">Task history</span>
+      <button class="modal-close" id="modalCloseBtn">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="cal-month-nav">
+        <button class="cal-nav-btn" id="calPrev">‹</button>
+        <span class="cal-month-label" id="calMonthLabel"></span>
+        <button class="cal-nav-btn" id="calNext">›</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-legend">
+        <span><i style="background:var(--green-light);border:1px solid var(--green-border);"></i>Done</span>
+        <span><i style="background:var(--red-light);border:1px solid var(--red-border);"></i>Missed</span>
+        <span><i style="background:var(--bg2);"></i>No data</span>
+      </div>
+      <div class="cal-streak" id="calStreak"></div>
+    </div>
+  </div>
+</div>
+
+<div id="confirmBg" class="confirm-bg" style="display:none;">
+  <div class="confirm-box">
+    <div class="confirm-title">End the day?</div>
+    <div class="confirm-body">Routine progress clears and tasks move to backlog based on status. Tomorrow's planned tasks appear immediately.</div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel-btn" id="confirmCancel">Cancel</button>
+      <button class="confirm-ok" id="confirmOk">End day</button>
+    </div>
+  </div>
+</div>
+
+<div id="planPopup" class="plan-popup" style="display:none;"></div>
+<div class="toast-msg" id="toast"></div>
+
+<script>
+var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var ALL_DAYS=[0,1,2,3,4,5,6];
+var SK={tasks:'rv9_tasks',history:'rv9_history',backlog:'rv9_backlog',dayTasks:'rv9_daytasks',currentDay:'rv9_currentday'};
+
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function dateStr(d){return d.toISOString().slice(0,10);}
+function parseDateLocal(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+function gradientColor(pct){
+  var r1=226,g1=75,b1=74,r2=186,g2=117,b2=23,r3=99,g3=153,b3=34,r,g,b;
+  if(pct<=0.5){var t=pct*2;r=Math.round(r1+(r2-r1)*t);g=Math.round(g1+(g2-g1)*t);b=Math.round(b1+(b2-b1)*t);}
+  else{var t2=(pct-0.5)*2;r=Math.round(r2+(r3-r2)*t2);g=Math.round(g2+(g3-g2)*t2);b=Math.round(b2+(b3-b2)*t2);}
+  return'rgb('+r+','+g+','+b+')';
+}
+function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
+function gs(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
+function ss(k,v){localStorage.setItem(k,JSON.stringify(v));}
+
+function defaultMust(){return[
+  {id:1,name:'Morning workout',time:'7:30 AM',days:ALL_DAYS.slice()},
+  {id:2,name:'Breakfast',time:'8:00 AM',days:ALL_DAYS.slice()},
+  {id:3,name:'Take vitamins',time:'8:15 AM',days:ALL_DAYS.slice()},
+  {id:4,name:'Wind down',time:'9:30 PM',days:ALL_DAYS.slice()},
+];}
+
+var mustTasks,history,backlog,dayTasks,currentDay;
+function loadAll(){
+  mustTasks=gs(SK.tasks)||defaultMust();
+  history=gs(SK.history)||{};
+  backlog=gs(SK.backlog)||[];
+  dayTasks=gs(SK.dayTasks)||{};
+  currentDay=gs(SK.currentDay)||todayStr();
+}
+function saveAll(){ss(SK.tasks,mustTasks);ss(SK.history,history);ss(SK.backlog,backlog);ss(SK.dayTasks,dayTasks);ss(SK.currentDay,currentDay);}
+loadAll();
+
+function getDay(){return currentDay;}
+function getDow(){return parseDateLocal(currentDay).getDay();}
+function dayRecord(d){if(!history[d])history[d]={mustDone:{},taskSnap:[],routineColor:null};return history[d];}
+function rec(){return dayRecord(getDay());}
+
+function updateDateLabel(){
+  var d=parseDateLocal(getDay());
+  document.getElementById('dateLabel').textContent=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+}
+updateDateLabel();
+
+function switchView(v,btn){
+  document.querySelectorAll('.view').forEach(function(el){el.classList.remove('active');});
+  document.querySelectorAll('.nav-tab').forEach(function(el){el.classList.remove('active');});
+  document.getElementById('view-'+v).classList.add('active');
+  btn.classList.add('active');
+  if(v==='history'){renderHistLog();renderOverallCal();}
+  if(v==='tasks')renderBacklog();
+  if(v==='routine')renderRoutineManage();
+}
+function switchHistTab(t,btn){
+  document.querySelectorAll('.hist-sub-tab').forEach(function(el){el.classList.remove('active');});
+  document.querySelectorAll('.hist-sub-view').forEach(function(el){el.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('hist-'+t).classList.add('active');
+  if(t==='overall')renderOverallCal();
+  if(t==='log')renderHistLog();
+}
+
+var donutMust,donutOpt;
+(function(){
+  donutMust=new Chart(document.getElementById('donutMust').getContext('2d'),{type:'doughnut',data:{datasets:[{data:[0,100],backgroundColor:['#E24B4A','rgba(128,128,128,0.12)'],borderWidth:0,cutout:'72%'}]},options:{responsive:false,plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:400}}});
+  donutOpt=new Chart(document.getElementById('donutOpt').getContext('2d'),{type:'doughnut',data:{datasets:[{data:[0,100],backgroundColor:['#E24B4A','rgba(128,128,128,0.12)'],borderWidth:0,cutout:'72%'}]},options:{responsive:false,plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:400}}});
+})();
+
+function todayMust(){var dow=getDow();return mustTasks.filter(function(t){return t.days&&t.days.indexOf(dow)>-1;});}
+function todayTasks(){return(dayTasks[getDay()]||[]).map(function(id){return backlog.find(function(b){return b.id===id;});}).filter(Boolean);}
+
+function updateStats(){
+  var r=rec();
+  var mt=todayMust();var mustTotal=mt.length;
+  var mustDoneCount=mt.filter(function(t){return r.mustDone[t.id]==='done';}).length;
+  var mustPct=mustTotal>0?mustDoneCount/mustTotal:0;
+  var tt=todayTasks();var taskTotal=tt.length;
+  var taskDoneCount=tt.filter(function(t){return r.mustDone['t_'+t.id]==='done';}).length;
+  var taskPct=taskTotal>0?taskDoneCount/taskTotal:0;
+  var total=mustTotal+taskTotal;var doneTotal=mustDoneCount+taskDoneCount;
+  var overallPct=total>0?doneTotal/total:0;
+  document.getElementById('mustPct').textContent=Math.round(mustPct*100)+'%';
+  document.getElementById('mustDone').textContent=mustDoneCount;
+  document.getElementById('mustLeft').textContent=mustTotal-mustDoneCount;
+  document.getElementById('optPct').textContent=Math.round(taskPct*100)+'%';
+  document.getElementById('optDone').textContent=taskDoneCount;
+  document.getElementById('optLeft').textContent=taskTotal-taskDoneCount;
+  document.getElementById('overallPct').textContent=Math.round(overallPct*100)+'%';
+  document.getElementById('barFill').style.background=gradientColor(overallPct);
+  document.getElementById('barFill').style.width=Math.round(overallPct*100)+'%';
+  if(donutMust){donutMust.data.datasets[0].data=[Math.round(mustPct*100),100-Math.round(mustPct*100)];donutMust.data.datasets[0].backgroundColor[0]=gradientColor(mustPct);donutMust.update();}
+  if(donutOpt){donutOpt.data.datasets[0].data=[Math.round(taskPct*100),100-Math.round(taskPct*100)];donutOpt.data.datasets[0].backgroundColor[0]=gradientColor(taskPct);donutOpt.update();}
+}
+
+function mkCircle(checked,onClick){
+  var c=document.createElement('div');c.className='check-circle'+(checked?' checked':'');
+  if(checked)c.innerHTML='<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l4 4 6-6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  c.addEventListener('click',onClick);return c;
+}
+
+function renderMustList(){
+  var list=document.getElementById('mustList');list.innerHTML='';
+  var mt=todayMust();var r=rec();
+  if(!mt.length){var e=document.createElement('div');e.className='empty-hint';e.textContent='No routine tasks scheduled today';list.appendChild(e);updateStats();return;}
+  mt.forEach(function(task){
+    var status=r.mustDone[task.id]||'pending';
+    var card=document.createElement('div');card.className='task-card'+(status==='done'?' done':'');
+    var circle=mkCircle(status==='done',function(){r.mustDone[task.id]=r.mustDone[task.id]==='done'?'pending':'done';saveAll();renderMustList();updateStats();});
+    var info=document.createElement('div');info.className='tinfo';info.style.cursor='pointer';
+    var nm=document.createElement('div');nm.className='tname';nm.textContent=(task.emoji?task.emoji+' ':'')+task.name;
+    var dl=task.days&&task.days.length<7?task.days.map(function(d){return DAYS[d];}).join(', '):'Every day';
+    var tm=document.createElement('div');tm.className='ttime';tm.textContent=(task.time?task.time+' · ':'')+dl+' · tap for history';
+    info.appendChild(nm);info.appendChild(tm);info.addEventListener('click',function(){openTaskModal(task);});
+    var del=document.createElement('button');del.className='icon-btn';del.textContent='🗑';
+    del.addEventListener('click',function(e){e.stopPropagation();if(!window.confirm('Delete "'+task.name+'"?'))return;mustTasks=mustTasks.filter(function(t){return t.id!==task.id;});saveAll();renderMustList();renderRoutineManage();updateStats();});
+    card.appendChild(circle);card.appendChild(info);card.appendChild(del);list.appendChild(card);
+  });
+  updateStats();
+}
+
+function renderTodayTaskList(){
+  var list=document.getElementById('todayTaskList');list.innerHTML='';
+  var tt=todayTasks();var r=rec();
+  if(!tt.length){var e=document.createElement('div');e.className='empty-hint';e.textContent='No tasks planned for today';list.appendChild(e);updateStats();return;}
+  tt.forEach(function(task){
+    var key='t_'+task.id;var status=r.mustDone[key]||'pending';
+    var card=document.createElement('div');card.className='task-card'+(status==='done'?' done':'');
+    var circle=mkCircle(status==='done',function(){r.mustDone[key]=r.mustDone[key]==='done'?'pending':'done';saveAll();renderTodayTaskList();updateStats();});
+    var info=document.createElement('div');info.className='tinfo';
+    var nm=document.createElement('div');nm.className='tname';nm.textContent=task.name;
+    if(task.note){var no=document.createElement('div');no.className='ttime';no.textContent=task.note;info.appendChild(nm);info.appendChild(no);}else info.appendChild(nm);
+    var rm=document.createElement('button');rm.className='icon-btn';rm.textContent='✕';rm.title='Remove from today';
+    rm.addEventListener('click',function(e){e.stopPropagation();var d=getDay();dayTasks[d]=(dayTasks[d]||[]).filter(function(id){return id!==task.id;});saveAll();renderTodayTaskList();renderBacklog();updateStats();});
+    card.appendChild(circle);card.appendChild(info);card.appendChild(rm);list.appendChild(card);
+  });
+  updateStats();
+}
+
+function renderAll(){renderMustList();renderTodayTaskList();}
+
+function renderRoutineManage(){
+  var container=document.getElementById('routineManage');container.innerHTML='';
+  if(!mustTasks.length){var e=document.createElement('div');e.className='no-hist';e.textContent='No routine tasks yet — add one above.';container.appendChild(e);return;}
+  mustTasks.forEach(function(task){
+    var row=document.createElement('div');row.className='rm-task';
+    var info=document.createElement('div');info.className='rm-info';
+    var nm=document.createElement('div');nm.className='rm-name';nm.textContent=(task.emoji?task.emoji+' ':'')+task.name+(task.time?' ('+task.time+')':'');
+    var daysRow=document.createElement('div');daysRow.className='rm-days';
+    DAYS.forEach(function(d,i){
+      var pill=document.createElement('button');pill.className='rm-day-pill'+(task.days&&task.days.indexOf(i)>-1?' active':'');pill.textContent=d;
+      pill.addEventListener('click',function(){
+        if(!task.days)task.days=[];
+        var idx=task.days.indexOf(i);
+        if(idx>-1)task.days.splice(idx,1);else task.days.push(i);
+        task.days.sort();pill.classList.toggle('active',task.days.indexOf(i)>-1);
+        saveAll();renderMustList();
+      });
+      daysRow.appendChild(pill);
+    });
+    info.appendChild(nm);info.appendChild(daysRow);
+    var actions=document.createElement('div');actions.className='rm-actions';
+    var hb=document.createElement('button');hb.className='icon-btn';hb.textContent='📅';hb.title='History';hb.addEventListener('click',function(){openTaskModal(task);});
+    var db=document.createElement('button');db.className='icon-btn';db.textContent='🗑';db.title='Delete';
+    db.addEventListener('click',function(){if(!window.confirm('Delete "'+task.name+'"?'))return;mustTasks=mustTasks.filter(function(t){return t.id!==task.id;});saveAll();renderRoutineManage();renderMustList();updateStats();});
+    actions.appendChild(hb);actions.appendChild(db);
+    row.appendChild(info);row.appendChild(actions);container.appendChild(row);
+  });
+}
+
+(function setupRoutineForm(){
+  var selDays=ALL_DAYS.slice();
+  var picker=document.getElementById('rDayPicker');
+  DAYS.forEach(function(d,i){
+    var btn=document.createElement('button');btn.className='day-btn sel';btn.textContent=d;
+    btn.addEventListener('click',function(){var idx=selDays.indexOf(i);if(idx>-1)selDays.splice(idx,1);else selDays.push(i);btn.classList.toggle('sel',selDays.indexOf(i)>-1);});
+    picker.appendChild(btn);
+  });
+  document.getElementById('addRoutineBtn').addEventListener('click',function(){document.getElementById('addFormRoutine').classList.toggle('open');});
+  document.getElementById('rCancelBtn').addEventListener('click',function(){document.getElementById('addFormRoutine').classList.remove('open');document.getElementById('rName').value='';document.getElementById('rTime').value='';document.getElementById('rEmoji').value='';});
+  document.getElementById('rSaveBtn').addEventListener('click',function(){
+    var name=document.getElementById('rName').value.trim();if(!name)return;
+    var emoji=document.getElementById('rEmoji').value.trim();
+    var task={id:Date.now(),name:name,time:document.getElementById('rTime').value.trim(),days:selDays.slice().sort()};
+    if(emoji)task.emoji=emoji;
+    mustTasks.push(task);saveAll();
+    document.getElementById('addFormRoutine').classList.remove('open');
+    document.getElementById('rName').value='';document.getElementById('rTime').value='';document.getElementById('rEmoji').value='';
+    selDays=ALL_DAYS.slice();picker.querySelectorAll('.day-btn').forEach(function(b){b.classList.add('sel');});
+    renderRoutineManage();renderMustList();
+  });
+})();
+
+(function setupBacklogForm(){
+  document.getElementById('addBacklogBtn').addEventListener('click',function(){document.getElementById('addFormBacklog').classList.toggle('open');});
+  document.getElementById('backlogCancelBtn').addEventListener('click',function(){document.getElementById('addFormBacklog').classList.remove('open');document.getElementById('backlogName').value='';document.getElementById('backlogNote').value='';});
+  document.getElementById('backlogSaveBtn').addEventListener('click',function(){
+    var name=document.getElementById('backlogName').value.trim();if(!name)return;
+    backlog.push({id:Date.now(),name:name,note:document.getElementById('backlogNote').value.trim(),status:'pending'});
+    saveAll();document.getElementById('addFormBacklog').classList.remove('open');document.getElementById('backlogName').value='';document.getElementById('backlogNote').value='';
+    renderBacklog();
+  });
+})();
+
+function renderBacklog(){
+  var section=document.getElementById('backlogSection');section.innerHTML='';
+  var today=getDay();
+  var pending=[],missed=[],done=[];
+  backlog.forEach(function(t){if(t.status==='done')done.push(t);else if(t.status==='missed')missed.push(t);else pending.push(t);});
+  function makeGroup(title,items,cls){
+    if(!items.length)return;
+    var g=document.createElement('div');g.className='backlog-group';
+    var gt=document.createElement('div');gt.className='backlog-group-title';gt.textContent=title;g.appendChild(gt);
+    items.forEach(function(task){
+      var row=document.createElement('div');row.className='backlog-item'+(cls?' '+cls:'');
+      var nm=document.createElement('div');nm.className='bname';nm.textContent=task.name+(task.note?' — '+task.note:'');
+      var right=document.createElement('div');right.style.cssText='display:flex;align-items:center;gap:6px;flex-shrink:0;';
+      var plannedDate=null;
+      Object.keys(dayTasks).forEach(function(d){if((dayTasks[d]||[]).indexOf(task.id)>-1)plannedDate=d;});
+      if(plannedDate&&cls!=='done-item'){
+        var badge=document.createElement('span');badge.className='planned-badge'+(plannedDate===today?' today-badge':'');
+        badge.textContent=plannedDate===today?'Today':parseDateLocal(plannedDate).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        right.appendChild(badge);
+      }
+      if(cls!=='done-item'){
+        var ab=document.createElement('button');ab.className='add-to-day-btn';ab.textContent=plannedDate?'Change':'+ Day';
+        ab.addEventListener('click',function(e){e.stopPropagation();showPlanPopup(task,ab);});right.appendChild(ab);
+      }
+      var db=document.createElement('button');db.className='del-bl-btn';db.textContent='🗑';
+      db.addEventListener('click',function(e){e.stopPropagation();if(!window.confirm('Delete "'+task.name+'"?'))return;backlog=backlog.filter(function(b){return b.id!==task.id;});Object.keys(dayTasks).forEach(function(d){dayTasks[d]=(dayTasks[d]||[]).filter(function(id){return id!==task.id;});});saveAll();renderBacklog();renderAll();});
+      right.appendChild(db);row.appendChild(nm);row.appendChild(right);g.appendChild(row);
+    });
+    section.appendChild(g);
+  }
+  makeGroup('Tasks',pending,'');makeGroup('Missed',missed,'missed-item');makeGroup('Done',done,'done-item');
+  if(!backlog.length){var e=document.createElement('div');e.className='no-hist';e.textContent='No tasks yet — add one above.';section.appendChild(e);}
+}
+
+function showPlanPopup(task,anchor){
+  var popup=document.getElementById('planPopup');popup.innerHTML='';
+  var label=document.createElement('label');label.textContent='Plan "'+task.name+'" for:';
+  var inp=document.createElement('input');inp.type='date';inp.value=getDay();
+  var btns=document.createElement('div');btns.className='plan-popup-btns';
+  var ok=document.createElement('button');ok.className='plan-confirm';ok.textContent='Plan it';
+  var cn=document.createElement('button');cn.className='plan-cancel-btn';cn.textContent='Cancel';
+  btns.appendChild(cn);btns.appendChild(ok);popup.appendChild(label);popup.appendChild(inp);popup.appendChild(btns);
+  var rect=anchor.getBoundingClientRect();
+  popup.style.display='block';
+  popup.style.top=(rect.bottom+window.scrollY+5)+'px';
+  popup.style.left=Math.min(rect.left,window.innerWidth-250)+'px';
+  ok.addEventListener('click',function(){
+    var d=inp.value;if(!d)return;
+    Object.keys(dayTasks).forEach(function(k){dayTasks[k]=(dayTasks[k]||[]).filter(function(id){return id!==task.id;});});
+    if(!dayTasks[d])dayTasks[d]=[];dayTasks[d].push(task.id);
+    saveAll();popup.style.display='none';renderBacklog();renderAll();
+    showToast('Planned for '+parseDateLocal(d).toLocaleDateString('en-US',{month:'short',day:'numeric'}));
+  });
+  cn.addEventListener('click',function(){popup.style.display='none';});
+}
+document.addEventListener('click',function(e){var p=document.getElementById('planPopup');if(p.style.display!=='none'&&!p.contains(e.target))p.style.display='none';});
+
+document.getElementById('endDayBtn').addEventListener('click',function(){document.getElementById('confirmBg').style.display='flex';});
+document.getElementById('confirmCancel').addEventListener('click',function(){document.getElementById('confirmBg').style.display='none';});
+document.getElementById('confirmOk').addEventListener('click',function(){document.getElementById('confirmBg').style.display='none';doEndDay();});
+
+function doEndDay(){
+  var d=getDay();var r=dayRecord(d);
+  var mt=todayMust();var tt=todayTasks();
+  var mustDoneCount=mt.filter(function(t){return r.mustDone[t.id]==='done';}).length;
+  r.routineColor=gradientColor(mt.length>0?mustDoneCount/mt.length:0);
+  r.taskSnap=tt.map(function(t){return{id:t.id,name:t.name,status:r.mustDone['t_'+t.id]||'pending'};});
+  tt.forEach(function(task){var bl=backlog.find(function(b){return b.id===task.id;});if(bl)bl.status=r.mustDone['t_'+task.id]==='done'?'done':'missed';});
+  dayTasks[d]=[];
+  Object.keys(r.mustDone).forEach(function(k){if(k.startsWith('t_'))delete r.mustDone[k];});
+  mt.forEach(function(t){delete r.mustDone[t.id];});
+  var tomorrow=new Date(parseDateLocal(d));tomorrow.setDate(tomorrow.getDate()+1);
+  currentDay=dateStr(tomorrow);
+  saveAll();updateDateLabel();renderAll();renderBacklog();
+  showToast('Day ended — now '+parseDateLocal(currentDay).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}));
+}
+
+document.getElementById('exportBtn').addEventListener('click',function(){
+  var payload={mustTasks:mustTasks,history:history,backlog:backlog,dayTasks:dayTasks,currentDay:currentDay,exportedAt:new Date().toISOString()};
+  var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='routine-backup.json';a.click();URL.revokeObjectURL(url);showToast('Backup saved');
+});
+document.getElementById('importTrigger').addEventListener('click',function(){document.getElementById('importInput').click();});
+document.getElementById('importInput').addEventListener('change',function(e){
+  var file=e.target.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var p=JSON.parse(ev.target.result);if(!p.mustTasks||!p.history){showToast('Invalid backup');return;}
+      mustTasks=p.mustTasks;history=p.history;backlog=p.backlog||[];dayTasks=p.dayTasks||{};currentDay=p.currentDay||todayStr();
+      saveAll();updateDateLabel();renderAll();renderBacklog();renderRoutineManage();showToast('Restored!');
+    }catch(err){showToast('Could not read file');}
+  };reader.readAsText(file);e.target.value='';
+});
+
+var activeTaskId=null,calYear=new Date().getFullYear(),calMonth=new Date().getMonth();
+document.getElementById('modalCloseBtn').addEventListener('click',function(){document.getElementById('taskModalBg').style.display='none';});
+document.getElementById('taskModalBg').addEventListener('click',function(e){if(e.target===this)this.style.display='none';});
+document.getElementById('calPrev').addEventListener('click',function(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendar();});
+document.getElementById('calNext').addEventListener('click',function(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendar();});
+function openTaskModal(task){activeTaskId=task.id;calYear=new Date().getFullYear();calMonth=new Date().getMonth();document.getElementById('modalTitle').textContent=(task.emoji?task.emoji+' ':'')+task.name;document.getElementById('taskModalBg').style.display='flex';renderCalendar();}
+function renderCalendar(){
+  var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent=months[calMonth]+' '+calYear;
+  var grid=document.getElementById('calGrid');grid.innerHTML='';
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(function(d){var el=document.createElement('div');el.className='cal-dow';el.textContent=d;grid.appendChild(el);});
+  var firstDay=new Date(calYear,calMonth,1).getDay();var daysInMonth=new Date(calYear,calMonth+1,0).getDate();var today=getDay();
+  for(var i=0;i<firstDay;i++){var el=document.createElement('div');el.className='cal-day empty';el.textContent=' ';grid.appendChild(el);}
+  for(var d=1;d<=daysInMonth;d++){
+    var ds=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var r=history[ds];var status=r&&r.mustDone&&r.mustDone[activeTaskId]?r.mustDone[activeTaskId]:null;
+    var el2=document.createElement('div');el2.className='cal-day'+(status==='done'?' done':status==='missed'?' missed':'')+(ds===today?' today':'');el2.textContent=d;grid.appendChild(el2);
+  }
+  var streak=0;for(var i2=0;i2<365;i2++){var dt=new Date();dt.setDate(dt.getDate()-i2);var ds2=dt.toISOString().slice(0,10);var r2=history[ds2];if(r2&&r2.mustDone&&r2.mustDone[activeTaskId]==='done')streak++;else if(ds2!==today)break;}
+  document.getElementById('calStreak').innerHTML=streak>0?'Current streak: <strong>'+streak+' day'+(streak===1?'':'s')+'</strong>':'No streak yet — start today!';
+}
+
+var ocalYear=new Date().getFullYear(),ocalMonth=new Date().getMonth();
+document.getElementById('ocalPrev').addEventListener('click',function(){ocalMonth--;if(ocalMonth<0){ocalMonth=11;ocalYear--;}renderOverallCal();});
+document.getElementById('ocalNext').addEventListener('click',function(){ocalMonth++;if(ocalMonth>11){ocalMonth=0;ocalYear++;}renderOverallCal();});
+function renderOverallCal(){
+  var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('ocalLabel').textContent=months[ocalMonth]+' '+ocalYear;
+  var grid=document.getElementById('ocalGrid');grid.innerHTML='';
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(function(d){var el=document.createElement('div');el.className='ocal-dow';el.textContent=d;grid.appendChild(el);});
+  var firstDay=new Date(ocalYear,ocalMonth,1).getDay();var daysInMonth=new Date(ocalYear,ocalMonth+1,0).getDate();var today=getDay();
+  for(var i=0;i<firstDay;i++){var el=document.createElement('div');el.className='ocal-day empty';el.textContent=' ';grid.appendChild(el);}
+  for(var d=1;d<=daysInMonth;d++){
+    var ds=ocalYear+'-'+String(ocalMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var r=history[ds];var el2=document.createElement('div');el2.className='ocal-day'+(ds===today?' today-mark':'');el2.textContent=d;
+    if(r&&r.routineColor){el2.style.background=r.routineColor;el2.style.color='#fff';el2.style.fontWeight='600';}
+    grid.appendChild(el2);
+  }
+}
+
+var histChart;
+document.getElementById('histFilter').addEventListener('change',renderHistLog);
+function renderHistLog(){
+  var filter=document.getElementById('histFilter').value;
+  var allDates=Object.keys(history).sort().reverse();var filtered=allDates;
+  if(filter!=='all'){var cutoff=new Date();cutoff.setDate(cutoff.getDate()-parseInt(filter));var cutStr=cutoff.toISOString().slice(0,10);filtered=allDates.filter(function(d){return d>=cutStr;});}
+  var chartDates=filtered.slice().reverse();
+  var mP=chartDates.map(function(d){var r=history[d];if(!r||!r.mustDone)return 0;var dow=parseDateLocal(d).getDay();var mt=mustTasks.filter(function(t){return t.days&&t.days.indexOf(dow)>-1;});if(!mt.length)return 0;return Math.round((mt.filter(function(t){return r.mustDone[t.id]==='done';}).length/mt.length)*100);});
+  var tP=chartDates.map(function(d){var r=history[d];if(!r||!r.taskSnap||!r.taskSnap.length)return 0;return Math.round((r.taskSnap.filter(function(t){return t.status==='done';}).length/r.taskSnap.length)*100);});
+  var oP=chartDates.map(function(d,i){return Math.round((mP[i]+tP[i])/2);});
+  var labels=chartDates.map(function(d){return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});});
+  if(histChart){histChart.destroy();histChart=null;}
+  histChart=new Chart(document.getElementById('histChart').getContext('2d'),{type:'line',data:{labels:labels,datasets:[{label:'Routine',data:mP,borderColor:'#A32D2D',backgroundColor:'transparent',pointBackgroundColor:'#A32D2D',pointRadius:3,tension:0.3,borderWidth:2,borderDash:[4,3]},{label:'Tasks',data:tP,borderColor:'#185FA5',backgroundColor:'transparent',pointBackgroundColor:'#185FA5',pointRadius:3,tension:0.3,borderWidth:2,borderDash:[2,2]},{label:'Overall',data:oP,borderColor:'#639922',backgroundColor:'rgba(99,153,34,0.08)',pointBackgroundColor:'#639922',pointRadius:3,fill:true,tension:0.3,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+c.raw+'%';}}}},scales:{y:{min:0,max:100,ticks:{callback:function(v){return v+'%';},font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}},x:{ticks:{font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:8},grid:{display:false}}}}});
+  var listEl=document.getElementById('histList');listEl.innerHTML='';
+  if(!filtered.length){listEl.innerHTML='<div class="no-hist">No history yet.</div>';return;}
+  filtered.forEach(function(date){
+    var r=history[date];if(!r)return;
+    var dow=parseDateLocal(date).getDay();
+    var mt=mustTasks.filter(function(t){return t.days&&t.days.indexOf(dow)>-1;});
+    var allSnap=mt.map(function(t){return{name:(t.emoji?t.emoji+' ':'')+t.name,status:r.mustDone&&r.mustDone[t.id]?r.mustDone[t.id]:'pending',cat:'routine'};});
+    (r.taskSnap||[]).forEach(function(t){allSnap.push({name:t.name,status:t.status,cat:'task'});});
+    var total=allSnap.length;if(!total)return;
+    var dc=allSnap.filter(function(t){return t.status==='done';}).length;var pct=Math.round((dc/total)*100);
+    var label=new Date(date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'});
+    var block=document.createElement('div');block.className='hist-day';
+    var rows=allSnap.map(function(t){var badge=t.cat==='routine'?'<span style="font-size:9px;background:#FCEBEB;color:#A32D2D;padding:1px 5px;border-radius:99px;">routine</span>':'<span style="font-size:9px;background:#E6F1FB;color:#185FA5;padding:1px 5px;border-radius:99px;">task</span>';return'<div class="hist-task"><div class="hist-dot '+(t.status||'pending')+'"></div><div class="hist-task-name">'+t.name+'</div>'+badge+'</div>';}).join('');
+    block.innerHTML='<div class="hist-day-header"><span class="hist-day-label">'+label+'</span><span style="font-size:13px;font-weight:600;color:'+gradientColor(pct/100)+';">'+pct+'%</span></div>'+(rows?'<div class="hist-tasks-inner">'+rows+'</div>':'');
+    listEl.appendChild(block);
+  });
+}
+
+renderAll();
+</script>
+</body>
+</html>
