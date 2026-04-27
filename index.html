@@ -198,7 +198,11 @@ html,body{min-height:100%;background:var(--bg3);font-family:-apple-system,BlinkM
 <div class="app">
   <div class="header">
     <h1>My Routine</h1>
-    <div class="header-date" id="dateLabel"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+      <button id="prevDayBtn" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:15px;color:var(--text2);cursor:pointer;">‹</button>
+      <div class="header-date" id="dateLabel" style="flex:1;text-align:center;"></div>
+      <button id="nextDayBtn" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:15px;color:var(--text2);cursor:pointer;">›</button>
+    </div>
   </div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="switchView('today',this)">Today</button>
@@ -411,6 +415,13 @@ function updateDateLabel(){
 }
 updateDateLabel();
 
+document.getElementById('prevDayBtn').addEventListener('click',function(){
+  var d=new Date(parseDateLocal(currentDay));d.setDate(d.getDate()-1);currentDay=dateStr(d);saveAll();updateDateLabel();renderAll();
+});
+document.getElementById('nextDayBtn').addEventListener('click',function(){
+  var d=new Date(parseDateLocal(currentDay));d.setDate(d.getDate()+1);currentDay=dateStr(d);saveAll();updateDateLabel();renderAll();
+});
+
 function switchView(v,btn){
   document.querySelectorAll('.view').forEach(function(el){el.classList.remove('active');});
   document.querySelectorAll('.nav-tab').forEach(function(el){el.classList.remove('active');});
@@ -480,9 +491,7 @@ function renderMustList(){
     var dl=task.days&&task.days.length<7?task.days.map(function(d){return DAYS[d];}).join(', '):'Every day';
     var tm=document.createElement('div');tm.className='ttime';tm.textContent=(task.time?task.time+' · ':'')+dl+' · tap for history';
     info.appendChild(nm);info.appendChild(tm);info.addEventListener('click',function(){openTaskModal(task);});
-    var del=document.createElement('button');del.className='icon-btn';del.textContent='🗑';
-    del.addEventListener('click',function(e){e.stopPropagation();if(!window.confirm('Delete "'+task.name+'"?'))return;mustTasks=mustTasks.filter(function(t){return t.id!==task.id;});saveAll();renderMustList();renderRoutineManage();updateStats();});
-    card.appendChild(circle);card.appendChild(info);card.appendChild(del);list.appendChild(card);
+    card.appendChild(circle);card.appendChild(info);list.appendChild(card);
   });
   updateStats();
 }
@@ -635,14 +644,16 @@ function doEndDay(){
   var d=getDay();var r=dayRecord(d);
   var mt=todayMust();var tt=todayTasks();
   var mustDoneCount=mt.filter(function(t){return r.mustDone[t.id]==='done';}).length;
-  r.routineColor=gradientColor(mt.length>0?mustDoneCount/mt.length:0);
+  var mustPct=mt.length>0?mustDoneCount/mt.length:0;
+  r.routineColor=gradientColor(mustPct);
+  r.routineSnap=mt.map(function(t){return{id:t.id,name:(t.emoji?t.emoji+' ':'')+t.name,status:r.mustDone[t.id]||'pending'};});
   r.taskSnap=tt.map(function(t){return{id:t.id,name:t.name,status:r.mustDone['t_'+t.id]||'pending'};});
   tt.forEach(function(task){var bl=backlog.find(function(b){return b.id===task.id;});if(bl)bl.status=r.mustDone['t_'+task.id]==='done'?'done':'missed';});
   dayTasks[d]=[];
-  Object.keys(r.mustDone).forEach(function(k){if(k.startsWith('t_'))delete r.mustDone[k];});
-  mt.forEach(function(t){delete r.mustDone[t.id];});
   var tomorrow=new Date(parseDateLocal(d));tomorrow.setDate(tomorrow.getDate()+1);
   currentDay=dateStr(tomorrow);
+  var rNew=dayRecord(currentDay);
+  rNew.mustDone={};
   saveAll();updateDateLabel();renderAll();renderBacklog();
   showToast('Day ended — now '+parseDateLocal(currentDay).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}));
 }
@@ -680,10 +691,15 @@ function renderCalendar(){
   for(var i=0;i<firstDay;i++){var el=document.createElement('div');el.className='cal-day empty';el.textContent=' ';grid.appendChild(el);}
   for(var d=1;d<=daysInMonth;d++){
     var ds=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    var r=history[ds];var status=r&&r.mustDone&&r.mustDone[activeTaskId]?r.mustDone[activeTaskId]:null;
+    var r=history[ds];
+    var status=null;
+    if(r){
+      if(r.routineSnap){var snap=r.routineSnap.find(function(s){return s.id===activeTaskId;});if(snap)status=snap.status;}
+      else if(r.mustDone&&r.mustDone[activeTaskId])status=r.mustDone[activeTaskId];
+    }
     var el2=document.createElement('div');el2.className='cal-day'+(status==='done'?' done':status==='missed'?' missed':'')+(ds===today?' today':'');el2.textContent=d;grid.appendChild(el2);
   }
-  var streak=0;for(var i2=0;i2<365;i2++){var dt=new Date();dt.setDate(dt.getDate()-i2);var ds2=dt.toISOString().slice(0,10);var r2=history[ds2];if(r2&&r2.mustDone&&r2.mustDone[activeTaskId]==='done')streak++;else if(ds2!==today)break;}
+  var streak=0;for(var i2=0;i2<365;i2++){var dt=new Date();dt.setDate(dt.getDate()-i2);var ds2=dt.toISOString().slice(0,10);var r2=history[ds2];var s2=null;if(r2){if(r2.routineSnap){var sn=r2.routineSnap.find(function(s){return s.id===activeTaskId;});if(sn)s2=sn.status;}else if(r2.mustDone)s2=r2.mustDone[activeTaskId]||null;}if(s2==='done')streak++;else if(ds2!==today)break;}
   document.getElementById('calStreak').innerHTML=streak>0?'Current streak: <strong>'+streak+' day'+(streak===1?'':'s')+'</strong>':'No streak yet — start today!';
 }
 
@@ -712,7 +728,16 @@ function renderHistLog(){
   var allDates=Object.keys(history).sort().reverse();var filtered=allDates;
   if(filter!=='all'){var cutoff=new Date();cutoff.setDate(cutoff.getDate()-parseInt(filter));var cutStr=cutoff.toISOString().slice(0,10);filtered=allDates.filter(function(d){return d>=cutStr;});}
   var chartDates=filtered.slice().reverse();
-  var mP=chartDates.map(function(d){var r=history[d];if(!r||!r.mustDone)return 0;var dow=parseDateLocal(d).getDay();var mt=mustTasks.filter(function(t){return t.days&&t.days.indexOf(dow)>-1;});if(!mt.length)return 0;return Math.round((mt.filter(function(t){return r.mustDone[t.id]==='done';}).length/mt.length)*100);});
+  var mP=chartDates.map(function(d){
+    var r=history[d];if(!r)return 0;
+    if(r.routineSnap&&r.routineSnap.length){
+      return Math.round((r.routineSnap.filter(function(t){return t.status==='done';}).length/r.routineSnap.length)*100);
+    }
+    if(!r.mustDone)return 0;
+    var dow=parseDateLocal(d).getDay();var mt=mustTasks.filter(function(t){return t.days&&t.days.indexOf(dow)>-1;});
+    if(!mt.length)return 0;
+    return Math.round((mt.filter(function(t){return r.mustDone[t.id]==='done';}).length/mt.length)*100);
+  });
   var tP=chartDates.map(function(d){var r=history[d];if(!r||!r.taskSnap||!r.taskSnap.length)return 0;return Math.round((r.taskSnap.filter(function(t){return t.status==='done';}).length/r.taskSnap.length)*100);});
   var oP=chartDates.map(function(d,i){return Math.round((mP[i]+tP[i])/2);});
   var labels=chartDates.map(function(d){return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});});
@@ -724,7 +749,12 @@ function renderHistLog(){
     var r=history[date];if(!r)return;
     var dow=parseDateLocal(date).getDay();
     var mt=mustTasks.filter(function(t){return t.days&&t.days.indexOf(dow)>-1;});
-    var allSnap=mt.map(function(t){return{name:(t.emoji?t.emoji+' ':'')+t.name,status:r.mustDone&&r.mustDone[t.id]?r.mustDone[t.id]:'pending',cat:'routine'};});
+    var allSnap=[];
+    if(r.routineSnap&&r.routineSnap.length){
+      r.routineSnap.forEach(function(t){allSnap.push({name:t.name,status:t.status,cat:'routine'});});
+    } else {
+      mt.forEach(function(t){allSnap.push({name:(t.emoji?t.emoji+' ':'')+t.name,status:r.mustDone&&r.mustDone[t.id]?r.mustDone[t.id]:'pending',cat:'routine'});});
+    }
     (r.taskSnap||[]).forEach(function(t){allSnap.push({name:t.name,status:t.status,cat:'task'});});
     var total=allSnap.length;if(!total)return;
     var dc=allSnap.filter(function(t){return t.status==='done';}).length;var pct=Math.round((dc/total)*100);
