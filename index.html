@@ -146,6 +146,8 @@ html,body{min-height:100%;background:var(--bg3);font-family:-apple-system,BlinkM
 .hist-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .hist-dot.done{background:var(--green);}.hist-dot.missed{background:var(--red);}.hist-dot.pending{background:var(--text3);}
 .hist-task-name{color:var(--text);flex:1;}
+.hist-sub-view#hist-charts .chart-section{background:#1c1c2e;border-radius:var(--radius-lg);margin:0 12px 12px;padding:12px 14px;}
+.hist-sub-view#hist-charts .chart-lbl{color:#aeaeb2;}
 .no-hist{padding:2rem;text-align:center;color:var(--text2);font-size:14px;}
 
 .overall-cal-section{padding:12px;}
@@ -198,11 +200,7 @@ html,body{min-height:100%;background:var(--bg3);font-family:-apple-system,BlinkM
 <div class="app">
   <div class="header">
     <h1>My Routine</h1>
-    <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-      <button id="prevDayBtn" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:15px;color:var(--text2);cursor:pointer;">‹</button>
-      <div class="header-date" id="dateLabel" style="flex:1;text-align:center;"></div>
-      <button id="nextDayBtn" style="background:none;border:0.5px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:15px;color:var(--text2);cursor:pointer;">›</button>
-    </div>
+    <div class="header-date" id="dateLabel"></div>
   </div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="switchView('today',this)">Today</button>
@@ -250,7 +248,10 @@ html,body{min-height:100%;background:var(--bg3);font-family:-apple-system,BlinkM
         <button class="action-btn" id="importTrigger">Import backup ↑</button>
       </div>
       <input type="file" id="importInput" accept=".json" style="display:none"/>
-      <button class="end-day-btn" id="endDayBtn">End the day</button>
+      <div style="display:flex;gap:8px;">
+        <button class="action-btn" id="goBackBtn" style="flex:0 0 auto;padding:13px 14px;font-size:13px;" title="Go back one day to edit">← Go back</button>
+        <button class="end-day-btn" id="endDayBtn" style="flex:1;">End the day</button>
+      </div>
     </div>
     <div class="install-note"><strong>Installed?</strong> If not: tap the Share button in Safari → "Add to Home Screen" → Add. Then open from your home screen for the full app experience.</div>
     <div style="height:12px;"></div>
@@ -295,11 +296,13 @@ html,body{min-height:100%;background:var(--bg3);font-family:-apple-system,BlinkM
 
   <div id="view-history" class="view">
     <div class="hist-tab-row">
-      <button class="hist-sub-tab active" onclick="switchHistTab('overall',this)">Calendar</button>
-      <button class="hist-sub-tab" onclick="switchHistTab('log',this)">Day log</button>
+      <button class="hist-sub-tab active" onclick="switchHistTab('calendar',this)">Calendar</button>
+      <button class="hist-sub-tab" onclick="switchHistTab('charts',this)">Charts</button>
     </div>
-    <div id="hist-overall" class="hist-sub-view active">
+
+    <div id="hist-calendar" class="hist-sub-view active">
       <div class="overall-cal-section">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;">Routine</div>
         <div class="overall-cal-nav">
           <button class="cal-nav-btn" id="ocalPrev">‹</button>
           <span class="overall-cal-label" id="ocalLabel"></span>
@@ -314,19 +317,39 @@ html,body{min-height:100%;background:var(--bg3);font-family:-apple-system,BlinkM
           <span><i style="background:var(--bg2);border:0.5px solid var(--border);"></i>No data</span>
         </div>
       </div>
-    </div>
-    <div id="hist-log" class="hist-sub-view">
-      <div class="hist-controls"><select id="histFilter"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 3 months</option><option value="365">Last year</option><option value="all">All time</option></select></div>
-      <div class="chart-section">
-        <div class="chart-lbl">Completion rate over time</div>
-        <div style="position:relative;width:100%;height:170px;"><canvas id="histChart" role="img" aria-label="Completion chart">History.</canvas></div>
-        <div class="hist-legend">
-          <span><i style="background:#A32D2D;"></i>Routine</span>
-          <span><i style="background:#185FA5;"></i>Tasks</span>
-          <span><i style="background:#639922;"></i>Overall</span>
+      <div style="height:0.5px;background:var(--border);margin:4px 12px 0;"></div>
+      <div class="overall-cal-section">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;">Tasks</div>
+        <div class="overall-cal-nav">
+          <button class="cal-nav-btn" id="tcalPrev">‹</button>
+          <span class="overall-cal-label" id="tcalLabel"></span>
+          <button class="cal-nav-btn" id="tcalNext">›</button>
+        </div>
+        <div class="ocal-grid" id="tcalGrid"></div>
+        <div class="ocal-legend">
+          <span><i style="background:#639922;"></i>100%</span>
+          <span><i style="background:#97C459;"></i>≥75%</span>
+          <span><i style="background:#EF9F27;"></i>≥50%</span>
+          <span><i style="background:#E24B4A;"></i>&lt;50%</span>
+          <span><i style="background:var(--bg2);border:0.5px solid var(--border);"></i>No data</span>
         </div>
       </div>
-      <div id="histList"></div>
+    </div>
+
+    <div id="hist-charts" class="hist-sub-view">
+      <div class="hist-controls"><select id="histFilter"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 3 months</option><option value="365">Last year</option><option value="all">All time</option></select></div>
+      <div class="chart-section">
+        <div class="chart-lbl">Routine completion %</div>
+        <div style="position:relative;width:100%;height:150px;"><canvas id="routineChart" role="img" aria-label="Routine completion chart">Routine history.</canvas></div>
+      </div>
+      <div class="chart-section">
+        <div class="chart-lbl">Tasks completion %</div>
+        <div style="position:relative;width:100%;height:150px;"><canvas id="tasksChart" role="img" aria-label="Tasks completion chart">Tasks history.</canvas></div>
+      </div>
+      <div class="chart-section">
+        <div class="chart-lbl">Overall %</div>
+        <div style="position:relative;width:100%;height:150px;"><canvas id="overallChart" role="img" aria-label="Overall completion chart">Overall history.</canvas></div>
+      </div>
     </div>
   </div>
 </div>
@@ -357,7 +380,7 @@ html,body{min-height:100%;background:var(--bg3);font-family:-apple-system,BlinkM
 <div id="confirmBg" class="confirm-bg" style="display:none;">
   <div class="confirm-box">
     <div class="confirm-title">End the day?</div>
-    <div class="confirm-body">Routine progress clears and tasks move to backlog based on status. Tomorrow's planned tasks appear immediately.</div>
+    <div class="confirm-body">Routine progress is saved and tasks move to backlog. Tomorrow's planned tasks will appear. You can go back one day using the ← Go back button if you need to make changes.</div>
     <div class="confirm-btns">
       <button class="confirm-cancel-btn" id="confirmCancel">Cancel</button>
       <button class="confirm-ok" id="confirmOk">End day</button>
@@ -415,11 +438,9 @@ function updateDateLabel(){
 }
 updateDateLabel();
 
-document.getElementById('prevDayBtn').addEventListener('click',function(){
+document.getElementById('goBackBtn').addEventListener('click',function(){
   var d=new Date(parseDateLocal(currentDay));d.setDate(d.getDate()-1);currentDay=dateStr(d);saveAll();updateDateLabel();renderAll();
-});
-document.getElementById('nextDayBtn').addEventListener('click',function(){
-  var d=new Date(parseDateLocal(currentDay));d.setDate(d.getDate()+1);currentDay=dateStr(d);saveAll();updateDateLabel();renderAll();
+  showToast('Back to '+parseDateLocal(currentDay).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}));
 });
 
 function switchView(v,btn){
@@ -427,7 +448,7 @@ function switchView(v,btn){
   document.querySelectorAll('.nav-tab').forEach(function(el){el.classList.remove('active');});
   document.getElementById('view-'+v).classList.add('active');
   btn.classList.add('active');
-  if(v==='history'){renderHistLog();renderOverallCal();}
+  if(v==='history'){renderCalendars();renderCharts();}
   if(v==='tasks')renderBacklog();
   if(v==='routine')renderRoutineManage();
 }
@@ -436,8 +457,8 @@ function switchHistTab(t,btn){
   document.querySelectorAll('.hist-sub-view').forEach(function(el){el.classList.remove('active');});
   btn.classList.add('active');
   document.getElementById('hist-'+t).classList.add('active');
-  if(t==='overall')renderOverallCal();
-  if(t==='log')renderHistLog();
+  if(t==='calendar')renderCalendars();
+  if(t==='charts')renderCharts();
 }
 
 var donutMust,donutOpt;
@@ -646,6 +667,9 @@ function doEndDay(){
   var mustDoneCount=mt.filter(function(t){return r.mustDone[t.id]==='done';}).length;
   var mustPct=mt.length>0?mustDoneCount/mt.length:0;
   r.routineColor=gradientColor(mustPct);
+  var taskDoneCount=tt.filter(function(t){return r.mustDone['t_'+t.id]==='done';}).length;
+  var taskPct=tt.length>0?taskDoneCount/tt.length:0;
+  r.taskColor=gradientColor(taskPct);
   r.routineSnap=mt.map(function(t){return{id:t.id,name:(t.emoji?t.emoji+' ':'')+t.name,status:r.mustDone[t.id]||'pending'};});
   r.taskSnap=tt.map(function(t){return{id:t.id,name:t.name,status:r.mustDone['t_'+t.id]||'pending'};});
   tt.forEach(function(task){var bl=backlog.find(function(b){return b.id===task.id;});if(bl)bl.status=r.mustDone['t_'+task.id]==='done'?'done':'missed';});
@@ -704,35 +728,56 @@ function renderCalendar(){
 }
 
 var ocalYear=new Date().getFullYear(),ocalMonth=new Date().getMonth();
-document.getElementById('ocalPrev').addEventListener('click',function(){ocalMonth--;if(ocalMonth<0){ocalMonth=11;ocalYear--;}renderOverallCal();});
-document.getElementById('ocalNext').addEventListener('click',function(){ocalMonth++;if(ocalMonth>11){ocalMonth=0;ocalYear++;}renderOverallCal();});
-function renderOverallCal(){
+var tcalYear=new Date().getFullYear(),tcalMonth=new Date().getMonth();
+
+document.getElementById('ocalPrev').addEventListener('click',function(){ocalMonth--;if(ocalMonth<0){ocalMonth=11;ocalYear--;}renderRoutineCal();});
+document.getElementById('ocalNext').addEventListener('click',function(){ocalMonth++;if(ocalMonth>11){ocalMonth=0;ocalYear++;}renderRoutineCal();});
+document.getElementById('tcalPrev').addEventListener('click',function(){tcalMonth--;if(tcalMonth<0){tcalMonth=11;tcalYear--;}renderTaskCal();});
+document.getElementById('tcalNext').addEventListener('click',function(){tcalMonth++;if(tcalMonth>11){tcalMonth=0;tcalYear++;}renderTaskCal();});
+
+function buildOcalGrid(gridId,labelId,yr,mo,colorFn){
   var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('ocalLabel').textContent=months[ocalMonth]+' '+ocalYear;
-  var grid=document.getElementById('ocalGrid');grid.innerHTML='';
+  document.getElementById(labelId).textContent=months[mo]+' '+yr;
+  var grid=document.getElementById(gridId);grid.innerHTML='';
   ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(function(d){var el=document.createElement('div');el.className='ocal-dow';el.textContent=d;grid.appendChild(el);});
-  var firstDay=new Date(ocalYear,ocalMonth,1).getDay();var daysInMonth=new Date(ocalYear,ocalMonth+1,0).getDate();var today=getDay();
+  var firstDay=new Date(yr,mo,1).getDay();var daysInMonth=new Date(yr,mo+1,0).getDate();var today=getDay();
   for(var i=0;i<firstDay;i++){var el=document.createElement('div');el.className='ocal-day empty';el.textContent=' ';grid.appendChild(el);}
   for(var d=1;d<=daysInMonth;d++){
-    var ds=ocalYear+'-'+String(ocalMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var ds=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     var r=history[ds];var el2=document.createElement('div');el2.className='ocal-day'+(ds===today?' today-mark':'');el2.textContent=d;
-    if(r&&r.routineColor){el2.style.background=r.routineColor;el2.style.color='#fff';el2.style.fontWeight='600';}
+    var col=colorFn(r,ds);
+    if(col){el2.style.background=col;el2.style.color='#fff';el2.style.fontWeight='600';}
     grid.appendChild(el2);
   }
 }
 
-var histChart;
-document.getElementById('histFilter').addEventListener('change',renderHistLog);
-function renderHistLog(){
+function routineColorForDay(r){
+  if(!r)return null;
+  if(r.routineColor)return r.routineColor;
+  if(r.routineSnap&&r.routineSnap.length){var dc=r.routineSnap.filter(function(t){return t.status==='done';}).length;return gradientColor(dc/r.routineSnap.length);}
+  return null;
+}
+function taskColorForDay(r){
+  if(!r)return null;
+  if(r.taskColor)return r.taskColor;
+  if(r.taskSnap&&r.taskSnap.length){var dc=r.taskSnap.filter(function(t){return t.status==='done';}).length;return gradientColor(dc/r.taskSnap.length);}
+  return null;
+}
+
+function renderRoutineCal(){buildOcalGrid('ocalGrid','ocalLabel',ocalYear,ocalMonth,function(r){return routineColorForDay(r);});}
+function renderTaskCal(){buildOcalGrid('tcalGrid','tcalLabel',tcalYear,tcalMonth,function(r){return taskColorForDay(r);});}
+function renderCalendars(){renderRoutineCal();renderTaskCal();}
+
+var routineChart,tasksChart,overallChart;
+document.getElementById('histFilter').addEventListener('change',renderCharts);
+function renderCharts(){
   var filter=document.getElementById('histFilter').value;
   var allDates=Object.keys(history).sort().reverse();var filtered=allDates;
   if(filter!=='all'){var cutoff=new Date();cutoff.setDate(cutoff.getDate()-parseInt(filter));var cutStr=cutoff.toISOString().slice(0,10);filtered=allDates.filter(function(d){return d>=cutStr;});}
   var chartDates=filtered.slice().reverse();
   var mP=chartDates.map(function(d){
     var r=history[d];if(!r)return 0;
-    if(r.routineSnap&&r.routineSnap.length){
-      return Math.round((r.routineSnap.filter(function(t){return t.status==='done';}).length/r.routineSnap.length)*100);
-    }
+    if(r.routineSnap&&r.routineSnap.length)return Math.round((r.routineSnap.filter(function(t){return t.status==='done';}).length/r.routineSnap.length)*100);
     if(!r.mustDone)return 0;
     var dow=parseDateLocal(d).getDay();var mt=mustTasks.filter(function(t){return t.days&&t.days.indexOf(dow)>-1;});
     if(!mt.length)return 0;
@@ -741,30 +786,31 @@ function renderHistLog(){
   var tP=chartDates.map(function(d){var r=history[d];if(!r||!r.taskSnap||!r.taskSnap.length)return 0;return Math.round((r.taskSnap.filter(function(t){return t.status==='done';}).length/r.taskSnap.length)*100);});
   var oP=chartDates.map(function(d,i){return Math.round((mP[i]+tP[i])/2);});
   var labels=chartDates.map(function(d){return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});});
-  if(histChart){histChart.destroy();histChart=null;}
-  histChart=new Chart(document.getElementById('histChart').getContext('2d'),{type:'line',data:{labels:labels,datasets:[{label:'Routine',data:mP,borderColor:'#A32D2D',backgroundColor:'transparent',pointBackgroundColor:'#A32D2D',pointRadius:3,tension:0.3,borderWidth:2,borderDash:[4,3]},{label:'Tasks',data:tP,borderColor:'#185FA5',backgroundColor:'transparent',pointBackgroundColor:'#185FA5',pointRadius:3,tension:0.3,borderWidth:2,borderDash:[2,2]},{label:'Overall',data:oP,borderColor:'#639922',backgroundColor:'rgba(99,153,34,0.08)',pointBackgroundColor:'#639922',pointRadius:3,fill:true,tension:0.3,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+c.raw+'%';}}}},scales:{y:{min:0,max:100,ticks:{callback:function(v){return v+'%';},font:{size:10}},grid:{color:'rgba(128,128,128,0.1)'}},x:{ticks:{font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:8},grid:{display:false}}}}});
-  var listEl=document.getElementById('histList');listEl.innerHTML='';
-  if(!filtered.length){listEl.innerHTML='<div class="no-hist">No history yet.</div>';return;}
-  filtered.forEach(function(date){
-    var r=history[date];if(!r)return;
-    var dow=parseDateLocal(date).getDay();
-    var mt=mustTasks.filter(function(t){return t.days&&t.days.indexOf(dow)>-1;});
-    var allSnap=[];
-    if(r.routineSnap&&r.routineSnap.length){
-      r.routineSnap.forEach(function(t){allSnap.push({name:t.name,status:t.status,cat:'routine'});});
-    } else {
-      mt.forEach(function(t){allSnap.push({name:(t.emoji?t.emoji+' ':'')+t.name,status:r.mustDone&&r.mustDone[t.id]?r.mustDone[t.id]:'pending',cat:'routine'});});
-    }
-    (r.taskSnap||[]).forEach(function(t){allSnap.push({name:t.name,status:t.status,cat:'task'});});
-    var total=allSnap.length;if(!total)return;
-    var dc=allSnap.filter(function(t){return t.status==='done';}).length;var pct=Math.round((dc/total)*100);
-    var label=new Date(date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'});
-    var block=document.createElement('div');block.className='hist-day';
-    var rows=allSnap.map(function(t){var badge=t.cat==='routine'?'<span style="font-size:9px;background:#FCEBEB;color:#A32D2D;padding:1px 5px;border-radius:99px;">routine</span>':'<span style="font-size:9px;background:#E6F1FB;color:#185FA5;padding:1px 5px;border-radius:99px;">task</span>';return'<div class="hist-task"><div class="hist-dot '+(t.status||'pending')+'"></div><div class="hist-task-name">'+t.name+'</div>'+badge+'</div>';}).join('');
-    block.innerHTML='<div class="hist-day-header"><span class="hist-day-label">'+label+'</span><span style="font-size:13px;font-weight:600;color:'+gradientColor(pct/100)+';">'+pct+'%</span></div>'+(rows?'<div class="hist-tasks-inner">'+rows+'</div>':'');
-    listEl.appendChild(block);
-  });
+
+  function mkChart(canvasId,old,data,color,fillColor){
+    if(old){old.destroy();}
+    return new Chart(document.getElementById(canvasId).getContext('2d'),{type:'line',data:{labels:labels,datasets:[{label:'%',data:data,borderColor:color,backgroundColor:fillColor||'transparent',pointBackgroundColor:color,pointRadius:2,fill:!!fillColor,tension:0.3,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.raw+'%';}}}},scales:{y:{min:0,max:100,ticks:{callback:function(v){return v+'%';},font:{size:10},color:'#fff'},grid:{color:'rgba(255,255,255,0.15)'}},x:{ticks:{font:{size:10},color:'#fff',maxRotation:45,autoSkip:true,maxTicksLimit:8},grid:{display:false}}}}});
+  }
+  routineChart=mkChart('routineChart',routineChart,mP,'#ffffff','rgba(255,255,255,0.15)');
+  tasksChart=mkChart('tasksChart',tasksChart,tP,'#639922','rgba(99,153,34,0.2)');
+  overallChart=mkChart('overallChart',overallChart,oP,'#639922','rgba(99,153,34,0.15)');
 }
+
+function checkMondayCleanup(){
+  var now=new Date();
+  var isMon=now.getDay()===1;
+  var isPast3am=now.getHours()>=3;
+  var lastCleanKey='rv9_lastclean';
+  var lastClean=localStorage.getItem(lastCleanKey);
+  var thisMonday=new Date(now);thisMonday.setDate(now.getDate()-((now.getDay()+6)%7));
+  var thisMondayStr=thisMonday.toISOString().slice(0,10);
+  if(isMon&&isPast3am&&lastClean!==thisMondayStr){
+    backlog=backlog.filter(function(t){return t.status!=='done';});
+    saveAll();
+    localStorage.setItem(lastCleanKey,thisMondayStr);
+  }
+}
+checkMondayCleanup();
 
 renderAll();
 </script>
